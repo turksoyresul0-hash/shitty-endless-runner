@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FPS Game</title>
+</head>
+<body style="background:#000;color:#fff;font-family:Arial;text-align:center;padding-top:20vh">
+<div id="loading">🎮 Oyun yükleniyor...</div>
+<script>
+fetch('./index.html.txt?cache=' + Date.now())
+  .then(r => { if (!r.ok) throw new Error('Oyun dosyası bulunamadı: ' + r.status); return r.text(); })
+  .then(html => {
+    document.open();
+    document.write(html);
+    document.close();
+  })
+  .catch(err => {
+    document.body.innerHTML='<h2>Oyun yüklenemedi</h2><p>'+err.message+'</p>';
+  });
+</script>
+</body>
+</html>
