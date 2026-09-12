@@ -10,18 +10,24 @@
 #hud{position:fixed;left:20px;top:20px;color:#fff;z-index:10;font-size:18px;text-shadow:2px 2px 4px #000;line-height:1.5}
 #info{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);color:#fff;z-index:10;text-align:center;background:rgba(0,0,0,.55);padding:9px 16px;border-radius:10px;font-size:14px}
 #status{position:fixed;left:50%;top:18%;transform:translateX(-50%);color:#fff;z-index:20;font-size:22px;font-weight:bold;text-shadow:2px 2px 5px #000;opacity:0;transition:opacity .15s}
+#damageFlash{position:fixed;inset:0;background:rgba(255,0,0,.28);z-index:15;pointer-events:none;opacity:0;transition:opacity .12s}
+#gameOver{display:none;position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.78);color:#fff;align-items:center;justify-content:center;text-align:center}
+#gameOver .panel{background:rgba(15,15,20,.96);border:1px solid #777;border-radius:18px;padding:28px;min-width:min(420px,90vw);box-shadow:0 20px 70px #000}
+#gameOver h1{margin:0 0 8px;font-size:42px}#gameOver p{color:#bbb;margin:8px 0 18px}#restart{padding:11px 28px;border:0;border-radius:9px;font-weight:bold;cursor:pointer}
 #shop{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;width:min(720px,92vw);background:rgba(10,12,16,.96);border:1px solid #777;border-radius:16px;color:#fff;padding:22px;box-shadow:0 20px 60px #000}
 #shop h2{margin:0 0 5px;text-align:center}#shop p{text-align:center;color:#bbb;margin:6px 0 18px}
 .shopGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{background:#1c2027;border:1px solid #444;border-radius:12px;padding:14px}.card h3{margin:0 0 8px}.card div{font-size:13px;color:#bbb;line-height:1.5}.card button{width:100%;margin-top:12px;padding:9px;border:0;border-radius:8px;background:#e5e5e5;color:#111;font-weight:bold;cursor:pointer}.card button:disabled{opacity:.4;cursor:not-allowed}.owned{border-color:#4caf50}.selected{border-color:#ffd54a}.close{display:block;margin:16px auto 0;padding:8px 22px;border:0;border-radius:8px;cursor:pointer}
-@media(max-width:650px){.shopGrid{grid-template-columns:1fr}.card{padding:10px}#info{font-size:11px;max-width:92vw}}
+@media(max-width:650px){.shopGrid{grid-template-columns:1fr}.card{padding:10px}#info{font-size:11px;max-width:92vw}#hud{font-size:15px;left:12px;top:12px}}
 </style>
 </head>
 <body>
 <div id="crosshair">+</div>
-<div id="hud">❤️ HP: <span id="hp">100</span><br>🔫 <span id="weaponName">Pistol</span> | Mermi: <span id="ammo">12</span> / <span id="reserve">72</span><br>💰 Para: <span id="money">0</span><br><span style="font-size:14px">1/2/3 = Silah | B = Mağaza</span></div>
+<div id="damageFlash"></div>
+<div id="hud">❤️ HP: <span id="hp">100</span><br>🔫 <span id="weaponName">Pistol</span> | Mermi: <span id="ammo">12</span> / <span id="reserve">72</span><br>💰 Para: <span id="money">0</span><br>🌊 Dalga: <span id="wave">1</span> | 👾 Kalan: <span id="enemyCount">0</span><br><span style="font-size:14px">1/2/3 = Silah | B = Mağaza</span></div>
 <div id="status"></div>
 <div id="info">WASD = Hareket | SPACE = Zıpla | Mouse = Bak | Sol Tık = Ateş | R = Reload | 1/2/3 = Silah | B = Mağaza</div>
 <div id="shop"><h2>🔫 SİLAH MAĞAZASI</h2><p>Para: <b id="shopMoney">0</b> 💰 — Sahip olduğun silahları seçebilirsin.</p><div class="shopGrid" id="shopGrid"></div><button class="close" id="closeShop">Kapat (B)</button></div>
+<div id="gameOver"><div class="panel"><h1>OYUN BİTTİ</h1><p>Dalga: <b id="finalWave">1</b> · Öldürme: <b id="finalKills">0</b></p><button id="restart">TEKRAR OYNA</button></div></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from "three";
@@ -35,16 +41,16 @@ function box(x,y,z,w,h,d,color){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h
 box(0,5,-70,140,10,2,0x555555);box(0,5,70,140,10,2,0x555555);box(-70,5,0,2,10,140,0x555555);box(70,5,0,2,10,140,0x555555);
 
 const player={position:new THREE.Vector3(0,2,5),rotationY:0,rotationX:0,velocityY:0,canJump:true,speed:8,hp:100,money:0};
-const keys={};let mouseDown=false,shopOpen=false;
-document.addEventListener("keydown",e=>{keys[e.code]=true;if(e.code==="Space")jump();if(e.code==="KeyR")reload();if(e.code==="KeyB")toggleShop();if(e.code==="Digit1")selectWeapon("pistol");if(e.code==="Digit2")selectWeapon("shotgun");if(e.code==="Digit3")selectWeapon("sniper")});
+const keys={};let mouseDown=false,shopOpen=false,gameOver=false;
+let wave=1,kills=0,waveStarting=false,nextWaveTimer=null;
+document.addEventListener("keydown",e=>{keys[e.code]=true;if(e.code==="Space")jump();if(e.code==="KeyR")reload();if(e.code==="KeyB"&&!gameOver)toggleShop();if(e.code==="Digit1")selectWeapon("pistol");if(e.code==="Digit2")selectWeapon("shotgun");if(e.code==="Digit3")selectWeapon("sniper")});
 document.addEventListener("keyup",e=>keys[e.code]=false);
-document.addEventListener("mousedown",e=>{if(e.button===0&&!shopOpen){mouseDown=true;shoot()}});document.addEventListener("mouseup",e=>{if(e.button===0)mouseDown=false});
-document.addEventListener("mousemove",e=>{if(!shopOpen&&(document.pointerLockElement===renderer.domElement||e.buttons===1||e.movementX||e.movementY)){player.rotationY-=e.movementX*.003;player.rotationX-=e.movementY*.003;player.rotationX=THREE.MathUtils.clamp(player.rotationX,-1.4,1.4)}});
-renderer.domElement.addEventListener("click",()=>{if(!shopOpen&&renderer.domElement.requestPointerLock)renderer.domElement.requestPointerLock().catch(()=>{})});
-function jump(){if(player.canJump&&!shopOpen){player.velocityY=9;player.canJump=false}}
+document.addEventListener("mousedown",e=>{if(e.button===0&&!shopOpen&&!gameOver){mouseDown=true;shoot()}});document.addEventListener("mouseup",e=>{if(e.button===0)mouseDown=false});
+document.addEventListener("mousemove",e=>{if(!shopOpen&&!gameOver){player.rotationY-=e.movementX*.003;player.rotationX-=e.movementY*.003;player.rotationX=THREE.MathUtils.clamp(player.rotationX,-1.4,1.4)}});
+function jump(){if(player.canJump&&!shopOpen&&!gameOver){player.velocityY=9;player.canJump=false}}
 
 const weapons={
- pistol:{name:"Pistol",price:0,damage:50,delay:260,mag:12,reserve:72,reload:650,recoil:.018,pellets:1,spread:0.002,color:0x222222},
+ pistol:{name:"Pistol",price:0,damage:50,delay:260,mag:12,reserve:72,reload:650,recoil:.018,pellets:1,spread:.002,color:0x222222},
  shotgun:{name:"Shotgun",price:700,damage:28,delay:650,mag:6,reserve:36,reload:900,recoil:.045,pellets:7,spread:.045,color:0x5b321e},
  sniper:{name:"Sniper",price:1200,damage:140,delay:900,mag:5,reserve:20,reload:1100,recoil:.055,pellets:1,spread:.001,color:0x263238}
 };
@@ -63,30 +69,35 @@ function buildWeapon(type){while(weapon.children.length)weapon.remove(weapon.chi
 buildWeapon(current);
 function save(){localStorage.setItem("fpsOwnedWeapons",JSON.stringify(owned));localStorage.setItem("fpsAmmoState",JSON.stringify(ammoState))}
 function state(){return ammoState[current]}
-function ui(){document.getElementById("ammo").textContent=state().ammo;document.getElementById("reserve").textContent=state().reserve;document.getElementById("hp").textContent=Math.max(0,Math.round(player.hp));document.getElementById("money").textContent=player.money;document.getElementById("weaponName").textContent=weapons[current].name;document.getElementById("shopMoney").textContent=player.money}
-function flash(text){const s=document.getElementById("status");s.textContent=text;s.style.opacity=1;clearTimeout(flash.t);flash.t=setTimeout(()=>s.style.opacity=0,500)}
-function selectWeapon(type){if(!owned.includes(type)){flash("Önce mağazadan satın al!");return}if(current===type)return;reloading=false;current=type;buildWeapon(type);flash(weapons[type].name);ui();renderShop()}
-function shoot(){const now=performance.now(),w=weapons[current],s=state();if(shopOpen||reloading||now-lastShot<w.delay)return;if(s.ammo<=0){reload();return}lastShot=now;s.ammo--;ui();
+function ui(){document.getElementById("ammo").textContent=state().ammo;document.getElementById("reserve").textContent=state().reserve;document.getElementById("hp").textContent=Math.max(0,Math.round(player.hp));document.getElementById("money").textContent=player.money;document.getElementById("weaponName").textContent=weapons[current].name;document.getElementById("shopMoney").textContent=player.money;document.getElementById("wave").textContent=wave;document.getElementById("enemyCount").textContent=enemies.length}
+function flash(text){const s=document.getElementById("status");s.textContent=text;s.style.opacity=1;clearTimeout(flash.t);flash.t=setTimeout(()=>s.style.opacity=0,650)}
+function selectWeapon(type){if(gameOver)return;if(!owned.includes(type)){flash("Önce mağazadan satın al!");return}if(current===type)return;reloading=false;current=type;buildWeapon(type);flash(weapons[type].name);ui();renderShop()}
+function shoot(){const now=performance.now(),w=weapons[current],s=state();if(shopOpen||gameOver||reloading||now-lastShot<w.delay)return;if(s.ammo<=0){reload();return}lastShot=now;s.ammo--;ui();
  player.rotationX=THREE.MathUtils.clamp(player.rotationX+w.recoil,-1.4,1.4);weapon.position.z=.09;weapon.rotation.x=-.07;const muzzle=weapon.getObjectByName("muzzle");if(muzzle){muzzle.visible=true;setTimeout(()=>muzzle.visible=false,55)}setTimeout(()=>{weapon.position.z=0;weapon.rotation.x=0},90);
  const ray=new THREE.Raycaster();for(let i=0;i<w.pellets;i++){const spreadX=(Math.random()-.5)*w.spread,spreadY=(Math.random()-.5)*w.spread;ray.setFromCamera(new THREE.Vector2(spreadX,spreadY),camera);const hits=ray.intersectObjects(enemies,true);const target=hits.find(h=>h.object.userData.enemy);if(target){damageEnemy(target.object,w.damage);if(current==="sniper")break}}
  save();}
-function reload(){const w=weapons[current],s=state();if(reloading||s.ammo>=w.mag||s.reserve<=0)return;reloading=true;flash("RELOAD...");weapon.rotation.z=-.15;setTimeout(()=>{const n=Math.min(w.mag-s.ammo,s.reserve);s.ammo+=n;s.reserve-=n;reloading=false;weapon.rotation.z=0;ui();save()},w.reload)}
+function reload(){const w=weapons[current],s=state();if(reloading||s.ammo>=w.mag||s.reserve<=0||gameOver)return;reloading=true;flash("RELOAD...");weapon.rotation.z=-.15;setTimeout(()=>{if(gameOver){reloading=false;weapon.rotation.z=0;return}const n=Math.min(w.mag-s.ammo,s.reserve);s.ammo+=n;s.reserve-=n;reloading=false;weapon.rotation.z=0;ui();save()},w.reload)}
 
 const enemies=[];
-function createEnemy(x,z){const g=new THREE.Group();const bodyE=new THREE.Mesh(new THREE.BoxGeometry(1.5,2.5,1.5),new THREE.MeshStandardMaterial({color:0xaa2222}));bodyE.userData.enemy=true;g.add(bodyE);g.position.set(x,1.25,z);g.userData.enemy=true;g.userData.hp=100;scene.add(g);enemies.push(g)}
-createEnemy(10,-20);createEnemy(-15,-30);createEnemy(20,-40);createEnemy(-25,-45);createEnemy(35,-55);createEnemy(-35,-55);
-function damageEnemy(obj,damage){const enemy=obj.parent?.userData.enemy?obj.parent:obj;if(!enemy?.userData.enemy)return;enemy.userData.hp-=damage;const mat=enemy.children[0].material;mat.color.set(0xffffff);setTimeout(()=>{if(enemy.parent)mat.color.set(0xaa2222)},70);if(enemy.userData.hp<=0){scene.remove(enemy);const i=enemies.indexOf(enemy);if(i>=0)enemies.splice(i,1);player.money+=100;ui();flash("+100 💰");spawnLater()}}
-function spawnLater(){setTimeout(()=>{if(enemies.length<10){const a=Math.random()*Math.PI*2,d=35+Math.random()*25;createEnemy(Math.cos(a)*d,Math.sin(a)*d)}},900)}
-function updateEnemies(delta){enemies.forEach(enemy=>{const dir=new THREE.Vector3().subVectors(player.position,enemy.position);dir.y=0;const dist=dir.length();if(dist>3){dir.normalize();enemy.position.addScaledVector(dir,delta*(2+Math.min(player.money/500,2)))}})}
+function enemyStats(){return{hp:100+(wave-1)*20,speed:2+Math.min((wave-1)*.12,2.2),damage:5+Math.floor((wave-1)/3),attackDelay:850-Math.min((wave-1)*20,350)}}
+function createEnemy(x,z){const st=enemyStats();const g=new THREE.Group();const bodyE=new THREE.Mesh(new THREE.BoxGeometry(1.5,2.5,1.5),new THREE.MeshStandardMaterial({color:0xaa2222}));bodyE.userData.enemy=true;g.add(bodyE);g.position.set(x,1.25,z);g.userData.enemy=true;g.userData.hp=st.hp;g.userData.maxHp=st.hp;g.userData.speed=st.speed;g.userData.damage=st.damage;g.userData.attackDelay=st.attackDelay;g.userData.lastAttack=0;scene.add(g);enemies.push(g)}
+function spawnWave(){waveStarting=false;const count=Math.min(3+wave*2,28);for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2;const d=28+Math.random()*30;createEnemy(Math.cos(a)*d,Math.sin(a)*d)};flash("DALGA "+wave+" BAŞLADI!");ui()}
+function damageEnemy(obj,damage){const enemy=obj.parent?.userData.enemy?obj.parent:obj;if(!enemy?.userData.enemy)return;enemy.userData.hp-=damage;const mat=enemy.children[0].material;mat.color.set(0xffffff);setTimeout(()=>{if(enemy.parent)mat.color.set(0xaa2222)},70);if(enemy.userData.hp<=0){scene.remove(enemy);const i=enemies.indexOf(enemy);if(i>=0)enemies.splice(i,1);kills++;player.money+=100+wave*10;ui();flash("+"+(100+wave*10)+" 💰");if(enemies.length===0)startNextWave()}}
+function startNextWave(){if(waveStarting||gameOver)return;waveStarting=true;const reward=150+wave*50;player.money+=reward;flash("DALGA TEMİZ! +"+reward+" 💰");ui();clearTimeout(nextWaveTimer);nextWaveTimer=setTimeout(()=>{if(gameOver)return;wave++;spawnWave()},2200)}
+function playerHit(damage){if(gameOver)return;player.hp-=damage;const overlay=document.getElementById("damageFlash");overlay.style.opacity=1;setTimeout(()=>overlay.style.opacity=0,120);flash("-"+damage+" HP");ui();if(player.hp<=0)die()}
+function die(){if(gameOver)return;gameOver=true;mouseDown=false;reloading=false;document.getElementById("finalWave").textContent=wave;document.getElementById("finalKills").textContent=kills;document.getElementById("gameOver").style.display="flex";flash("OYUN BİTTİ")}
+function resetGame(){clearTimeout(nextWaveTimer);enemies.forEach(e=>scene.remove(e));enemies.length=0;wave=1;kills=0;gameOver=false;waveStarting=false;player.hp=100;player.position.set(0,2,5);player.rotationY=0;player.rotationX=0;player.velocityY=0;player.money=0;current="pistol";reloading=false;lastShot=0;Object.keys(weapons).forEach(k=>{ammoState[k]={ammo:weapons[k].mag,reserve:weapons[k].reserve}});buildWeapon(current);document.getElementById("gameOver").style.display="none";save();spawnWave();ui()}
+document.getElementById("restart").onclick=resetGame;
+function updateEnemies(delta){const now=performance.now();enemies.forEach(enemy=>{if(!enemy.parent)return;const dir=new THREE.Vector3().subVectors(player.position,enemy.position);dir.y=0;const dist=dir.length();if(dist>3.1){dir.normalize();enemy.position.addScaledVector(dir,delta*enemy.userData.speed)}else if(now-enemy.userData.lastAttack>=enemy.userData.attackDelay){enemy.userData.lastAttack=now;playerHit(enemy.userData.damage)}})}
 
-function toggleShop(){shopOpen=!shopOpen;document.getElementById("shop").style.display=shopOpen?"block":"none";if(shopOpen){mouseDown=false;renderShop()}else{renderShop()}}
+function toggleShop(){shopOpen=!shopOpen;document.getElementById("shop").style.display=shopOpen?"block":"none";mouseDown=false;renderShop()}
 document.getElementById("closeShop").onclick=toggleShop;
 function renderShop(){const grid=document.getElementById("shopGrid");grid.innerHTML="";Object.entries(weapons).forEach(([id,w])=>{const div=document.createElement("div");div.className="card"+(owned.includes(id)?" owned":"")+(current===id?" selected":"");const has=owned.includes(id);div.innerHTML=`<h3>${id==="pistol"?"🔫":"💥"} ${w.name}</h3><div>Hasar: ${w.damage}<br>Şarjör: ${w.mag}<br>Yedek: ${w.reserve}<br>Atış aralığı: ${w.delay} ms<br>Fiyat: ${w.price===0?"Ücretsiz":w.price+" 💰"}</div>`;const btn=document.createElement("button");btn.textContent=has?(current===id?"Kullanılıyor":"Kuşan"):"Satın Al";btn.disabled=!has&&player.money<w.price;btn.onclick=()=>{if(has)selectWeapon(id);else if(player.money>=w.price){player.money-=w.price;owned.push(id);save();flash(w.name+" satın alındı!");renderShop();ui()}};div.appendChild(btn);grid.appendChild(div)})}
 
 const clock=new THREE.Clock();
-function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.getDelta(),.05);if(!shopOpen){const forward=new THREE.Vector3(-Math.sin(player.rotationY),0,-Math.cos(player.rotationY));const right=new THREE.Vector3(Math.cos(player.rotationY),0,-Math.sin(player.rotationY));const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq())move.normalize().multiplyScalar(player.speed*delta);player.position.add(move);player.velocityY-=25*delta;player.position.y+=player.velocityY*delta;if(player.position.y<=2){player.position.y=2;player.velocityY=0;player.canJump=true}player.position.x=THREE.MathUtils.clamp(player.position.x,-65,65);player.position.z=THREE.MathUtils.clamp(player.position.z,-65,65);updateEnemies(delta);if(mouseDown)shoot()}
+function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.getDelta(),.05);if(!shopOpen&&!gameOver){const forward=new THREE.Vector3(-Math.sin(player.rotationY),0,-Math.cos(player.rotationY));const right=new THREE.Vector3(Math.cos(player.rotationY),0,-Math.sin(player.rotationY));const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq())move.normalize().multiplyScalar(player.speed*delta);player.position.add(move);player.velocityY-=25*delta;player.position.y+=player.velocityY*delta;if(player.position.y<=2){player.position.y=2;player.velocityY=0;player.canJump=true}player.position.x=THREE.MathUtils.clamp(player.position.x,-65,65);player.position.z=THREE.MathUtils.clamp(player.position.z,-65,65);updateEnemies(delta);if(mouseDown)shoot()}
 camera.position.copy(player.position);camera.rotation.y=player.rotationY;camera.rotation.x=player.rotationX;renderer.render(scene,camera);ui()}
-animate();window.addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});ui();
+spawnWave();animate();window.addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});ui();
 </script>
 </body>
 </html>
