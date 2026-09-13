@@ -32,8 +32,6 @@ jobs:
           grep -q 'platform-sdk.js' index.html
       - name: Validate authoritative combat guards
         run: |
-          grep -q 'function matchLive' server.js
-          grep -q 'matchLive(p)' server.js
-          grep -q "s.phase==='live'" match-authority.js
+          node -e "const fs=require('fs');const s=fs.readFileSync('server.js','utf8');const m=fs.readFileSync('match-authority.js','utf8');for(const x of ['function matchLive','matchLive(p)','serverHitType','hitType','r.range','r.angle'])if(!s.includes(x))throw new Error('missing server guard: '+x);if(!m.includes(\"s.phase='live'\"))throw new Error('missing live phase guard');console.log('authoritative combat guards OK')"
       - name: Multiplayer lifecycle smoke test
         run: node qa-server-test.js
