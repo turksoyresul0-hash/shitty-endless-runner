@@ -1,7 +1,8 @@
 (()=>{
   const W={pistol:50,smg:22,rifle:32,shotgun:28,sniper:150,lmg:27};
   const seen=new WeakSet();
-  let socket=null,myId=null,currentWeapon='pistol';
+  let socket=null,myId=null,currentWeapon='pistol',THREERef=null;
+  import('three').then(m=>THREERef=m).catch(()=>{});
   const css=document.createElement('style');css.textContent='.dmg-number{position:fixed;z-index:100;pointer-events:none;font:900 24px Arial;color:#fff;text-shadow:2px 2px 5px #000;transform:translate(-50%,-50%);animation:dmgFloat .72s ease-out forwards}.dmg-number.head{color:#ffd43b;font-size:29px}.dmg-number.self{color:#ff5b5b;font-size:22px}@keyframes dmgFloat{0%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:0;transform:translate(-50%,-155%) scale(1.35)}}';document.head.appendChild(css);
   function showDamage(pos,amount,head=false,self=false){
     const g=window.__fpsGame;if(!g||!pos)return;
@@ -14,13 +15,13 @@
   function note(text){const m=document.getElementById('msg');if(!m)return;m.textContent=text;clearTimeout(note.t);note.t=setTimeout(()=>{if(m.textContent===text)m.textContent=''},1200)}
   function incoming(e){let m;try{m=JSON.parse(e.data)}catch{return}
     if(m.type==='welcome'){myId=m.id;window.__mpMyId=m.id}
-    if(m.type==='state'&&m.player?.id===myId){setLocalVitals(m.player.hp,m.player.armor)}
+    if(m.type==='state'&&m.player?.id===myId)setLocalVitals(m.player.hp,m.player.armor);
     if(m.type==='hit'){
       if(m.attacker===myId){const g=findRemote(m.target);if(g){g.userData.hp=m.hp;g.userData.armor=m.armor;showDamage(g.position,m.damage,m.hitType==='head',false)}}
       if(m.target===myId){setLocalVitals(m.hp,m.armor);showDamage(window.__fpsGame?.player?.p,m.damage,m.hitType==='head',true);note('💥 -'+Math.round(m.damage)+' HASAR')}
     }
     if(m.type==='kill'){
-      if(m.attacker===myId){const g=findRemote(m.target);if(g)showDamage(g.position,m.reward||150,false,false);note('💀 ELİMİNASYON +₺'+(m.reward||150))}
+      if(m.attacker===myId){const g=findRemote(m.target);if(g){g.visible=false;showDamage(g.position,m.reward||150,false,false)}note('💀 ELİMİNASYON +₺'+(m.reward||150))}
       if(m.target===myId){setLocalVitals(0,0);note('💀 ÖLDÜN • YENİDEN DOĞUYORSUN');window.__fpsDead=true}
     }
     if(m.type==='respawn'){
@@ -31,12 +32,12 @@
   const oldSend=WebSocket.prototype.send;
   WebSocket.prototype.send=function(data){socket=this;if(!seen.has(this)){seen.add(this);this.addEventListener('message',incoming)}try{const m=typeof data==='string'?JSON.parse(data):null;if(m?.type==='state'&&m.weapon)currentWeapon=String(m.weapon);if(m?.type==='shoot'&&m.weapon)currentWeapon=String(m.weapon)}catch{}return oldSend.call(this,data)};
   function remoteHitFromAim(){
-    const g=window.__fpsGame;if(!g||window.__fpsDead)return;
-    const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),g.camera);
+    const g=window.__fpsGame;if(!g||window.__fpsDead||!THREERef)return;
+    const ray=new THREERef.Raycaster();ray.setFromCamera(new THREERef.Vector2(0,0),g.camera);
     const objs=[];g.scene.traverse(o=>{if(o.isMesh){let p=o;while(p){if(p.userData&&p.userData.id&&p.userData.id!==myId){objs.push(o);break}p=p.parent}}});
     const hit=ray.intersectObjects(objs,false)[0];if(!hit)return;
     let root=hit.object;while(root.parent&&!(root.userData&&root.userData.id))root=root.parent;const id=root.userData?.id;if(!id)return;
-    const base=W[currentWeapon]||50;const head=hit.point.y>root.position.y+2.15;
+    const head=hit.point.y>root.position.y+2.15;
     if(socket?.readyState===1)socket.send(JSON.stringify({type:'hit',target:id,weapon:currentWeapon,hitType:head?'head':'body'}));
   }
   document.addEventListener('pointerdown',e=>{if(e.target&&((e.target.closest&&e.target.closest('#fire'))||e.target===window.__fpsGame?.renderer?.domElement||e.target.tagName==='CANVAS'))setTimeout(remoteHitFromAim,0)},{passive:true});
