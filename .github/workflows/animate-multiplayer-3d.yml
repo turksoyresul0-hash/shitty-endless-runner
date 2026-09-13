@@ -1,0 +1,63 @@
+name: Animate multiplayer 3D players
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'MP_ANIM_TRIGGER.md'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add 3D player animation and tactical details
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='g.userData.mp3dUpgrade=true;'
+          if marker not in s:
+              raise SystemExit('multiplayer 3D marker not found')
+          if 'mp3dAnimationUpgrade' in s:
+              print('animation upgrade already present')
+              raise SystemExit(0)
+          extra="""
+              g.userData.mp3dAnimationUpgrade=true;
+              g.userData.animPhase=Math.random()*Math.PI*2;
+              const radio=new THREE.BoxGeometry(.10,.16,.06);
+              const radioMat=new THREE.MeshStandardMaterial({color:0x11161b,roughness:.6,metalness:.25});
+              const radioMesh=new THREE.Mesh(radio,radioMat);radioMesh.position.set(.36,1.52,.02);g.add(radioMesh);
+              const strapMat=new THREE.MeshStandardMaterial({color:0x0d1216,roughness:.85});
+              for(const side of [-1,1]){
+                const strap=new THREE.Mesh(new THREE.BoxGeometry(.07,.78,.08),strapMat);strap.position.set(side*.22,1.60,.02);strap.rotation.z=side*.10;g.add(strap);
+              }
+              const belt=new THREE.Mesh(new THREE.BoxGeometry(.66,.08,.16),strapMat);belt.position.set(0,1.18,-.03);g.add(belt);
+              const kneeMat=new THREE.MeshStandardMaterial({color:0x303942,roughness:.75,metalness:.15});
+              for(const side of [-1,1]){
+                const knee=new THREE.Mesh(new THREE.BoxGeometry(.25,.16,.20),kneeMat);knee.position.set(side*.20,.56,-.05);g.add(knee);
+              }
+          """
+          s=s.replace(marker,marker+extra,1)
+          anchor='window.__fpsGame={scene,camera,player};'
+          if anchor not in s:
+              raise SystemExit('game anchor not found')
+          anim="""
+          window.__mpAnimate3D=()=>{const t=performance.now()*.005;scene.traverse(o=>{if(o.userData&&o.userData.mp3dAnimationUpgrade){const ph=o.userData.animPhase||0;o.position.y+=(Math.sin(t+ph)*.012-o.position.y%1000*.0);o.rotation.z=Math.sin(t*.8+ph)*.008;}})};requestAnimationFrame(function f(){window.__mpAnimate3D();requestAnimationFrame(f)});
+          """
+          s=s.replace(anchor,anchor+anim,1)
+          p.write_text(s,encoding='utf-8')
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Improve multiplayer 3D player details and animation [skip ci]"
+          git push
