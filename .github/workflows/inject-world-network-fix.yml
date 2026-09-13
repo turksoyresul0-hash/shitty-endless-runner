@@ -1,4 +1,4 @@
-name: Inject world and network fixes
+name: Inject world network and match systems
 on:
   push:
     branches: [main]
@@ -15,7 +15,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('index.html'); s=p.read_text()
-          for tag in ['<script src="world-upgrade.js"></script>','<script src="network-fix.js"></script>']:
+          for tag in ['<script src="world-upgrade.js"></script>','<script src="network-fix.js"></script>','<script src="match-system.js"></script>']:
               if tag not in s: s=s.replace('</body></html>',tag+'</body></html>')
           p.write_text(s)
           PY
@@ -24,5 +24,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m '[auto-fix] inject world and network fixes'
+          git diff --cached --quiet || git commit -m '[auto-fix] inject world network and match systems'
           git push
