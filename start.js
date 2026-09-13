@@ -1,1 +1,1 @@
-require('./server');require('./team-authority');
+require('./server');require('./team-authority');require('./match-production-guard');
