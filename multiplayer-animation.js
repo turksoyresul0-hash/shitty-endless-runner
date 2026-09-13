@@ -1,0 +1,6 @@
+(()=>{'use strict';
+const state=new WeakMap();
+function scan(){const game=window.__fpsGame;if(!game?.scene)return;game.scene.traverse(o=>{if(!o.userData?.id||o.userData.local||o.userData.isLocal)return;const v=o.userData.__realisticOperator;if(!v)return;let s=state.get(o);if(!s){s={last:o.position.clone(),phase:Math.random()*6.28,shot:0};state.set(o,s)}const dx=o.position.x-s.last.x,dz=o.position.z-s.last.z;const moving=Math.hypot(dx,dz)>0.008;const now=performance.now();if(o.userData.__animShot)s.shot=now+180;if(now<s.shot){v.rotation.x=-.16;v.position.z=.035}else{v.position.z=0;v.rotation.x=-.03}const legs=[];v.traverse(n=>{if(n.isMesh&&n.geometry?.type==='CapsuleGeometry')legs.push(n)});if(moving){s.phase+=.22;const swing=Math.sin(s.phase)*.18;let i=0;v.traverse(n=>{if(n.isMesh&&n.geometry?.type==='CapsuleGeometry'){if(i<2)n.rotation.z=(i? -swing:swing);i++}});v.position.y=Math.abs(Math.sin(s.phase))*.025}else{v.position.y=Math.sin(now*.0018+s.phase)*.008} s.last.copy(o.position)})}
+setInterval(scan,40);
+window.addEventListener('fps:remote-shot',e=>{const id=e.detail?.id;window.__fpsGame?.scene?.traverse(o=>{if(o.userData?.id===id)o.userData.__animShot=true})});
+})();
