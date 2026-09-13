@@ -1,0 +1,40 @@
+name: Release QA
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate metadata
+        run: python3 -m json.tool game-meta.json >/dev/null
+      - name: Validate required release files
+        run: |
+          set -e
+          for f in index.html privacy.html terms.html platform-sdk.js network-fix.js server.js start.js render.yaml; do
+            test -s "$f"
+          done
+      - name: Validate CrazyGames integration
+        run: |
+          set -e
+          grep -q 'crazygames-sdk-v3.js' index.html
+          grep -q 'platform-sdk.js' index.html
+          grep -q 'CrazyGames' platform-sdk.js
+      - name: Validate gameplay hooks
+        run: |
+          set -e
+          grep -q 'gameplayStart' platform-sdk.js
+          grep -q 'gameplayStop' platform-sdk.js
+          grep -q 'requestAd' platform-sdk.js
+      - name: Validate Node server syntax
+        run: |
+          set -e
+          node --check server.js
+          node --check start.js
+          node --check team-authority.js
+          node --check match-authority.js
+          node --check match-production-guard.js
