@@ -1,15 +1,23 @@
 (()=>{
   const A=global.__fpsMatchAuthority;
   if(!A)return;
-  const {players,stats}=A;
+  const {players,stats,broadcast}=A;
+  const MAP_BOXES=require('./map-collision');
   const last=new Map();
   const MAX_TICK=.35;
   const GRACE=1.35;
   const MAX_JUMP_HEIGHT=4.75;
   const GROUND_Y=2;
+  const PLAYER_RADIUS=.55;
   function live(p){const s=p.room&&global.__fpsMatchState?.get(p.room);return !!(s&&s.phase==='live')}
-  function spawnFor(p){return p.team==='blue'?{x:42,y:2,z:-42,ry:2.36}:{x:-42,y:2,z:42,ry:-.78}}
+  function insideBox(x,y,z,box){return x+PLAYER_RADIUS>box.minX&&x-PLAYER_RADIUS<box.maxX&&y+1.0>box.minY&&y-1.0<box.maxY&&z+PLAYER_RADIUS>box.minZ&&z-PLAYER_RADIUS<box.maxZ}
+  function blocked(x,y,z){return MAP_BOXES.some(box=>insideBox(x,y,z,box))}
   function baseline(id,p,now){last.set(id,{x:p.x,y:p.y,z:p.z,t:now,ry:p.ry,rx:p.rx,room:p.room,team:p.team,live:live(p)})}
+  function correct(id,p,prev,now){
+    p.x=prev.x;p.y=prev.y;p.z=prev.z;p.ry=prev.ry??p.ry;p.rx=prev.rx??p.rx;
+    baseline(id,p,now);
+    try{broadcast({type:'state',player:{id,x:p.x,y:p.y,z:p.z,ry:p.ry,rx:p.rx,hp:p.hp,maxHp:p.maxHp,armor:p.armor,maxArmor:p.maxArmor,weapon:p.weapon,character:p.character,name:p.name,score:p.score,dead:p.dead,team:p.team,ready:p.ready}})}catch{}
+  }
   function check(){
     const now=Date.now();
     for(const [id,p] of players){
@@ -25,9 +33,10 @@
       const horizontal=Math.hypot(dx,dz);
       const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
       const yTooHigh=p.y>GROUND_Y+MAX_JUMP_HEIGHT;
-      if(!Number.isFinite(dist)||dist>maxDist||horizontal>maxDist||yTooHigh){
-        p.x=prev.x;p.y=prev.y;p.z=prev.z;p.ry=prev.ry??p.ry;p.rx=prev.rx??p.rx;
-        baseline(id,p,now);
+      const yTooLow=p.y<0;
+      const enteredWorld=p.y>=0&&blocked(p.x,p.y,p.z);
+      if(!Number.isFinite(dist)||dist>maxDist||horizontal>maxDist||yTooHigh||yTooLow||enteredWorld){
+        correct(id,p,prev,now);
         continue;
       }
       last.set(id,{x:p.x,y:p.y,z:p.z,t:now,ry:p.ry,rx:p.rx,room:p.room,team:p.team,live:isLive});
