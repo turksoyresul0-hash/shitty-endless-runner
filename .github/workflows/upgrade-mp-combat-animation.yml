@@ -1,0 +1,81 @@
+name: Upgrade multiplayer combat animation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'MP_COMBAT_TRIGGER.md'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add combat animation and name tags
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='window.__mpAnimate3D=()=>'
+          if marker not in s:
+              raise SystemExit('3D animation marker not found')
+          if 'mpCombatAnimationUpgrade' in s:
+              print('combat animation already present')
+              raise SystemExit(0)
+          extra=r'''
+          window.__mpCombatAnimationUpgrade=true;
+          const mpTagCanvas=document.createElement('canvas');mpTagCanvas.width=256;mpTagCanvas.height=64;
+          const mpTagCtx=mpTagCanvas.getContext('2d');
+          const mpTagTexture=new THREE.CanvasTexture(mpTagCanvas);mpTagTexture.colorSpace=THREE.SRGBColorSpace;
+          const mpTagMat=new THREE.SpriteMaterial({map:mpTagTexture,transparent:true,depthTest:false,depthWrite:false});
+          const mpTagSprite=new THREE.Sprite(mpTagMat);mpTagSprite.scale.set(1.8,.45,1);mpTagSprite.position.set(0,2.65,0);
+          const mpTags=new Map();
+          function mpMakeTag(o){
+            if(!o.userData.mpCombatAnimationUpgrade){o.userData.mpCombatAnimationUpgrade=true;}
+            if(o.userData.mpTag)return o.userData.mpTag;
+            const c=document.createElement('canvas');c.width=256;c.height=64;const ctx=c.getContext('2d');
+            const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+            const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false});
+            const sp=new THREE.Sprite(mat);sp.scale.set(1.8,.45,1);sp.position.set(0,2.65,0);o.add(sp);
+            o.userData.mpTag={sprite:sp,canvas:c,ctx,tex,last:''};return o.userData.mpTag;
+          }
+          function mpUpdateTag(o,t){
+            const tag=mpMakeTag(o);const name=String(o.userData.mpName||o.userData.playerName||o.userData.name||'OYUNCU');
+            if(name===tag.last)return;tag.last=name;tag.ctx.clearRect(0,0,256,64);tag.ctx.font='bold 26px Arial';tag.ctx.textAlign='center';tag.ctx.textBaseline='middle';tag.ctx.lineWidth=6;tag.ctx.strokeStyle='rgba(0,0,0,.85)';tag.ctx.strokeText(name,128,32);tag.ctx.fillStyle='#fff';tag.ctx.fillText(name,128,32);tag.tex.needsUpdate=true;
+          }
+          const mpOriginalAnimate=window.__mpAnimate3D;
+          window.__mpAnimate3D=()=>{
+            if(mpOriginalAnimate)mpOriginalAnimate();
+            const now=performance.now()*.006;
+            scene.traverse(o=>{
+              if(!(o.userData&&o.userData.mp3dAnimationUpgrade))return;
+              mpUpdateTag(o,now);
+              const ph=o.userData.animPhase||0;
+              if(!o.userData.mpLastPos)o.userData.mpLastPos=o.position.clone();
+              const dx=o.position.x-o.userData.mpLastPos.x,dz=o.position.z-o.userData.mpLastPos.z;
+              const moving=(dx*dx+dz*dz)>.000004;
+              o.userData.mpLastPos.lerp(o.position,.35);
+              const bob=moving?Math.sin(now*2.7+ph)*.025:Math.sin(now+ph)*.008;
+              o.userData.mpBaseY??=o.position.y;
+              o.position.y=o.userData.mpBaseY+bob;
+              o.rotation.x=moving?Math.sin(now*2.7+ph)*.012:0;
+              o.rotation.z=Math.sin(now*.8+ph)*.006;
+            });
+          };
+          '''
+          s=s.replace(marker,extra+marker,1)
+          p.write_text(s,encoding='utf-8')
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Add multiplayer player name tags and combat animation [skip ci]"
+          git push
