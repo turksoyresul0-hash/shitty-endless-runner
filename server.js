@@ -14,6 +14,7 @@ wss.on('connection',ws=>{
  ws.on('message',raw=>{let m;try{m=JSON.parse(raw)}catch{return}
   if(m.type==='state'){Object.assign(p,{x:Number(m.x)||0,y:Number(m.y)||2,z:Number(m.z)||0,ry:Number(m.ry)||0,rx:Number(m.rx)||0,hp:Math.max(0,Number(m.hp)||0),armor:Math.max(0,Number(m.armor)||0),weapon:String(m.weapon||'pistol').slice(0,20)});broadcast({type:'state',player:{id,x:p.x,y:p.y,z:p.z,ry:p.ry,rx:p.rx,hp:p.hp,armor:p.armor,weapon:p.weapon}},id)}
   else if(m.type==='shoot'){broadcast({type:'shoot',id,weapon:String(m.weapon||p.weapon).slice(0,20),rx:Number(m.rx)||0,ry:Number(m.ry)||0},id)}
+  else if(m.type==='hit'){const target=players.get(String(m.target||''));if(!target||target===p) return;const dmg=Math.max(1,Math.min(100,Number(m.damage)||0));const hitType=String(m.hitType||'body').slice(0,12);target.hp=Math.max(0,target.hp-dmg);broadcast({type:'hit',attacker:id,target:target.id,damage:dmg,hitType,hp:target.hp},null);if(target.hp<=0){broadcast({type:'kill',attacker:id,target:target.id,reward:150});target.hp=100;target.armor=100;setTimeout(()=>{if(players.has(target.id))broadcast({type:'respawn',id:target.id,hp:100,armor:100},null)},700);}}
   else if(m.type==='chat'){const text=String(m.text||'').trim().slice(0,180);if(text)broadcast({type:'chat',id,name:p.name,text})}
   else if(m.type==='name'){p.name=String(m.name||p.name).trim().slice(0,24)||p.name;broadcast({type:'name',id,name:p.name})}
  });
