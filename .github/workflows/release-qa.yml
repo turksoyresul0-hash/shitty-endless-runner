@@ -23,15 +23,23 @@ jobs:
           node --check team-authority.js
           node --check player-stats-authority.js
           node --check match-production-guard.js
+          node --check combat-authority.js
+          node --check qa-server-test.js
       - name: Validate launch files
         run: |
           test -f privacy.html
           test -f terms.html
           test -f platform-sdk.js
+          test -f combat-authority.js
           grep -q 'crazygames-sdk-v3.js' index.html
           grep -q 'platform-sdk.js' index.html
+          grep -q 'combat-authority' start.js
       - name: Validate authoritative combat guards
         run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('server.js','utf8');const m=fs.readFileSync('match-authority.js','utf8');for(const x of ['function matchLive','matchLive(p)','serverHitType','hitType','r.range','r.angle'])if(!s.includes(x))throw new Error('missing server guard: '+x);if(!m.includes(\"s.phase='live'\"))throw new Error('missing live phase guard');console.log('authoritative combat guards OK')"
+          node -e "const fs=require('fs');const s=fs.readFileSync('server.js','utf8');const m=fs.readFileSync('match-authority.js','utf8');for(const x of ['function matchLive','matchLive(p)','serverHitType','hitType','r.range','r.angle'])if(!s.includes(x))throw new Error('missing server guard: '+x);if(!m.includes(\"phase='live'\")&&!m.includes(\"phase==='live'\"))throw new Error('missing live phase guard');console.log('authoritative combat guards OK')"
+      - name: Validate movement authority
+        run: |
+          grep -q 'MAX_JUMP_HEIGHT' movement-authority.js
+          grep -q 'maxSpeed' movement-authority.js
       - name: Multiplayer lifecycle smoke test
         run: node qa-server-test.js
