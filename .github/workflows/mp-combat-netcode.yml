@@ -1,0 +1,51 @@
+name: Add multiplayer combat netcode
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'MP_COMBAT_TRIGGER.md'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Upgrade multiplayer server combat
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('server.js')
+          s=p.read_text(encoding='utf-8')
+          if "m.type==='hit'" not in s:
+              old="  else if(m.type==='shoot'){broadcast({type:'shoot',id,weapon:String(m.weapon||p.weapon).slice(0,20),rx:Number(m.rx)||0,ry:Number(m.ry)||0},id)}"
+              new=old+"\n  else if(m.type==='hit'){const target=players.get(String(m.target||''));if(!target||target===p) return;const dmg=Math.max(1,Math.min(100,Number(m.damage)||0));const hitType=String(m.hitType||'body').slice(0,12);target.hp=Math.max(0,target.hp-dmg);broadcast({type:'hit',attacker:id,target:target.id,damage:dmg,hitType,hp:target.hp},null);if(target.hp<=0){broadcast({type:'kill',attacker:id,target:target.id,reward:150});target.hp=100;target.armor=100;setTimeout(()=>{if(players.has(target.id))broadcast({type:'respawn',id:target.id,hp:100,armor:100},null)},700);}}"
+              if old not in s: raise SystemExit('shoot handler not found')
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+      - name: Add client combat hooks
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='window.__mpCombatAnimationUpgrade=true;'
+          if marker not in s: raise SystemExit('combat marker not found')
+          if 'window.__mpNetCombatUpgrade=true;' in s:
+              raise SystemExit(0)
+          extra=r'''\nwindow.__mpNetCombatUpgrade=true;\nwindow.__mpDamagePopup=function(text,good){const d=document.createElement('div');d.textContent=text;d.style.cssText='position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:100;font:900 22px Arial;color:'+(good?'#7dff8b':'#ff6666')+';text-shadow:2px 2px 4px #000;pointer-events:none;transition:all .55s ease-out';document.body.appendChild(d);requestAnimationFrame(()=>{d.style.top='34%';d.style.opacity='0'});setTimeout(()=>d.remove(),600)};\nwindow.__mpRemoteFire=function(id){scene.traverse(o=>{if(o.userData&&o.userData.mpId===id){o.userData.mpFireUntil=performance.now()+140;const w=o.userData.mpTwoHandRig&&o.userData.mpTwoHandRig.rig; if(w) w.rotation.x-=.12;}})};\nconst mpOldAnimate=window.__mpAnimate3D;window.__mpAnimate3D=()=>{if(mpOldAnimate)mpOldAnimate();const now=performance.now();scene.traverse(o=>{if(!o.userData)return;if(o.userData.mpFireUntil&&o.userData.mpFireUntil>now){o.rotation.x+=.025;}if(o.userData.mpFireUntil&&o.userData.mpFireUntil<=now)o.userData.mpFireUntil=0;});};\n(function(){const oldSend=WebSocket.prototype.send;WebSocket.prototype.send=function(data){try{const m=JSON.parse(data);if(m&&m.type==='shoot')window.__mpLastShot=performance.now()}catch(e){}return oldSend.call(this,data)};})();\nsetInterval(()=>{scene.traverse(o=>{if(o.userData&&o.userData.mpFireUntil&&o.userData.mpFireUntil>performance.now()){if(!o.userData.mpFlash){o.userData.mpFlash=new THREE.PointLight(0xffaa44,5,3);o.add(o.userData.mpFlash)}o.userData.mpFlash.intensity=5}else if(o.userData&&o.userData.mpFlash)o.userData.mpFlash.intensity=0;});},50);\n'''
+          s=s.replace(marker,marker+extra,1)
+          p.write_text(s,encoding='utf-8')
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html server.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Add multiplayer combat netcode and damage feedback [skip ci]"
+          git push
