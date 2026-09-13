@@ -1,1 +1,1 @@
-Trigger multiplayer combat animation upgrade.
+Multiplayer combat netcode trigger.
