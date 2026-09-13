@@ -1,0 +1,21 @@
+(()=>{
+'use strict';
+const KEY='fpsProgressV1';
+const defaults={level:1,xp:0,money:0,streak:0,lastDay:'',missions:{kills:0,matches:0,shots:0}};
+function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return {...defaults}}}
+let p=load();
+function save(){localStorage.setItem(KEY,JSON.stringify(p));}
+function dayKey(){return new Date().toISOString().slice(0,10)}
+function awardXp(n){p.xp+=n;while(p.xp>=xpNext()){p.xp-=xpNext();p.level++;p.money+=150;toast(`SEVİYE ${p.level}! +150₺`)}save();render()}
+function xpNext(){return 500+(p.level-1)*125}
+function money(n){p.money+=n;localStorage.setItem('money',String(p.money));save();render()}
+function toast(t){let e=document.getElementById('lbToast');if(!e){e=document.createElement('div');e.id='lbToast';e.style.cssText='position:absolute;z-index:200;left:50%;top:92px;transform:translateX(-50%);padding:11px 18px;border:1px solid #ffd66e66;border-radius:8px;background:#071018ee;color:#ffd66e;font-weight:900;box-shadow:0 8px 28px #0008;opacity:0;transition:.2s';document.getElementById('lobby')?.appendChild(e)}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1800)}
+function ensureDaily(){const d=dayKey();if(p.lastDay!==d){const prev=new Date();prev.setDate(prev.getDate()-1);const yesterday=prev.toISOString().slice(0,10);p.streak=p.lastDay===yesterday?p.streak+1:1;p.lastDay=d;p.missions.kills=0;p.missions.matches=0;p.missions.shots=0;save()}}
+function render(){const m=document.getElementById('lbMoney');if(m)m.textContent=p.money;const season=document.querySelector('.rightCard b')?.parentElement;if(season&&season.textContent.includes('SEZON'))season.innerHTML=`<b>🏆 SEZON</b><br>Seviye ${p.level} • ${p.xp}/${xpNext()} XP<div style="height:6px;background:#111;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,p.xp/xpNext()*100)}%;background:#e5a83d"></i></div><small style="opacity:.6">Günlük seri: ${p.streak} 🔥</small>`;const mission=document.querySelector('.rightCard');if(mission&&mission.textContent.includes('GÜNLÜK GÖREV'))mission.innerHTML=`<b>🔥 GÜNLÜK GÖREV</b><br>3 rakip ele geçir <b style="float:right">${Math.min(3,p.missions.kills)}/3</b><div style="height:5px;background:#111;border-radius:4px;margin:7px 0;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,p.missions.kills/3*100)}%;background:#48e37b"></i></div><span style="color:#ffd66e">Ödül: +250₺</span>`}
+function bind(){document.getElementById('lbPlay')?.addEventListener('click',()=>{p.missions.matches++;awardXp(120);save()});document.getElementById('lbTrain')?.addEventListener('click',()=>{awardXp(60)});document.getElementById('lbQuick')?.addEventListener('click',()=>{toast('EŞLEŞME ARANIYOR...');awardXp(20);setTimeout(()=>document.getElementById('lbPlay')?.click(),650)});document.querySelectorAll('.mode[data-mode]').forEach(e=>e.addEventListener('click',()=>{if(e.dataset.mode==='multi'||e.dataset.mode==='training')return;e.classList.remove('selected');toast('Bu mod yakında açılacak')}) )}
+function hookGame(){window.addEventListener('fps:kill',()=>{p.missions.kills++;awardXp(100);if(p.missions.kills===3)money(250);save();render()});window.addEventListener('fps:shot',()=>{p.missions.shots++;if(p.missions.shots%20===0)awardXp(15)});window.addEventListener('fps:matchEnd',e=>{const reward=Math.max(50,Number(e.detail?.money||0));money(reward);awardXp(Number(e.detail?.xp||150))})}
+function init(){const l=document.getElementById('lobby');if(!l)return;ensureDaily();bind();hookGame();render();const old=document.getElementById('lbCharName');if(old){const hint=document.createElement('div');hint.id='lbProgressHint';hint.style.cssText='position:absolute;top:57px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:1px;color:#fff9;z-index:4;white-space:nowrap';hint.textContent='SEVİYE '+p.level+' • '+p.xp+'/'+xpNext()+' XP';old.parentElement.appendChild(hint)}
+}
+setTimeout(init,250);
+window.fpsProgress={get:()=>({...p}),xp:awardXp,money};
+})();
