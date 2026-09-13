@@ -15,6 +15,9 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          sdk='<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>'
+          if sdk not in s:
+              s=s.replace('</head>',sdk+'</head>')
           tags=[
             '<script src="world-upgrade.js"></script>',
             '<script src="network-fix.js"></script>',
@@ -27,7 +30,8 @@ jobs:
             '<script src="match-result-ui.js"></script>',
             '<script src="scoreboard.js"></script>',
             '<script src="scoreboard-feed.js"></script>',
-            '<script src="team-balance.js"></script>'
+            '<script src="team-balance.js"></script>',
+            '<script src="platform-sdk.js"></script>'
           ]
           for tag in tags:
               if tag not in s:
@@ -39,5 +43,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m '[auto-fix] inject match progression and scoreboard'
+          git diff --cached --quiet || git commit -m '[auto-fix] prepare monetized platform launch'
           git push
