@@ -35,3 +35,5 @@ jobs:
           grep -q 'function matchLive' server.js
           grep -q '!matchLive(p)' server.js
           grep -q "phase==='live'" match-authority.js
+      - name: Multiplayer lifecycle smoke test
+        run: node qa-server-test.js
