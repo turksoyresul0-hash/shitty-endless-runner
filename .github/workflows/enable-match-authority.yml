@@ -1,0 +1,35 @@
+name: Enable server authoritative match
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch server bootstrap
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.js')
+          s=p.read_text(encoding='utf-8')
+          marker="global.__fpsMatchAuthority={players,rooms,broadcast,stats,roomBroadcast};require('./match-authority');"
+          if marker not in s:
+              needle="server.listen(PORT,'0.0.0.0',()=>console.log('FPS Arena multiplayer server listening on '+PORT));"
+              if needle not in s: raise SystemExit('server listen marker not found')
+              s=s.replace(needle,marker+needle)
+          old="if(list.length>=2&&list.every(x=>x.ready)){roomBroadcast(r,{type:'match_start',code:r.code,mode:'team4v4',map:'METRO CITY',seconds:3},null);"
+          new="if(list.length>=2&&list.every(x=>x.ready)){r.matchRequested=true;roomBroadcast(r,{type:'match_start',code:r.code,mode:'team4v4',map:'METRO CITY',seconds:3},null);"
+          if old in s and "r.matchRequested=true" not in s: s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add server.js
+          git diff --cached --quiet || git commit -m 'feat: wire authoritative match engine'
+          git push
