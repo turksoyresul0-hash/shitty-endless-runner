@@ -1,0 +1,1 @@
+Trigger multiplayer 3D animation upgrade.
