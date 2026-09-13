@@ -1,0 +1,37 @@
+name: Release QA
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('game-meta.json','utf8')); console.log('game-meta.json OK')"
+      - name: Syntax check server modules
+        run: |
+          node --check server.js
+          node --check match-authority.js
+          node --check movement-authority.js
+          node --check team-authority.js
+          node --check player-stats-authority.js
+          node --check match-production-guard.js
+      - name: Validate launch files
+        run: |
+          test -f privacy.html
+          test -f terms.html
+          test -f platform-sdk.js
+          grep -q 'crazygames-sdk-v3.js' index.html
+          grep -q 'platform-sdk.js' index.html
+      - name: Validate authoritative combat guards
+        run: |
+          grep -q 'function matchLive' server.js
+          grep -q '!matchLive(p)' server.js
+          grep -q "phase==='live'" match-authority.js
