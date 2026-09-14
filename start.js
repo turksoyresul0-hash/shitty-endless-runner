@@ -1,1 +1,5 @@
-require('./server');require('./team-authority');require('./match-production-guard');require('./combat-authority');
+require('./server');
+require('./match-authority');
+require('./team-authority');
+require('./match-production-guard');
+require('./combat-authority');
