@@ -15,7 +15,7 @@ jobs:
           node-version: 20
           cache: npm
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
       - name: Validate JSON
         run: node -e "JSON.parse(require('fs').readFileSync('game-meta.json','utf8')); console.log('game-meta.json OK')"
       - name: Syntax check server modules
