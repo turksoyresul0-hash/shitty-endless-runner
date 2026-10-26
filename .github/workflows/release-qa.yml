@@ -51,6 +51,10 @@ jobs:
           node -e 'for(const f of ["room-system.js","team-match.js"]){const s=require("fs").readFileSync(f,"utf8");if(s.includes("new WebSocket("))throw new Error(f+" must use the shared socket");if(!s.includes("fps:server-message"))throw new Error(f+" missing shared network events");}'
           grep -q 'window.__fpsNetConnect=connect' network-fix.js
           grep -q "fps:server-message" network-fix.js
+          grep -q 'window.__fpsNetRaycastPlayers' network-fix.js
+          grep -q 'window.mpSendPlayerHit' network-fix.js
+          grep -q 'window.__fpsNetRaycastPlayers(ray' index.html
+          grep -q 'window.mpSendPlayerHit(targetPlayer.id,current)' index.html
       - name: Validate weapon pickup wiring
         run: |
           grep -q 'window.__fpsServerWeapon=()=>current' index.html
