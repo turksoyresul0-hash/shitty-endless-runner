@@ -46,7 +46,7 @@ jobs:
           grep -q 'window.__fpsApplyPickedWeapon' index.html
           grep -q 'weapon-drop-visuals.js' index.html
           grep -q "roomBroadcast(dropRoom,{type:'weapon_drop'" server.js
-          grep -q "type==='weapon_pickup'" weapon-drop-visuals.js
+          grep -q "fps:weapon-pickup" weapon-drop-visuals.js
       - name: Validate launch files
         run: |
           test -f privacy.html
