@@ -33,6 +33,9 @@ jobs:
           node --check player-stats-authority.js
           node --check match-production-guard.js
           node --check combat-authority.js
+          node --check assist-authority.js
+          node --check ranked-system.js
+          node --check ranked-match-result.js
           node --check qa-server-test.js
           node --check network-fix.js
           node --check weapon-drop-visuals.js
