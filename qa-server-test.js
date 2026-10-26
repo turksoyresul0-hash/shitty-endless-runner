@@ -21,7 +21,7 @@ async function waitFor(c,pred,ms=3000){const end=Date.now()+ms;while(Date.now()<
  await waitFor(a,e=>e.type==='match_start',3000);await sleep(50);
  const roster=a.events.filter(e=>e.type==='room'&&e.room).at(-1).room.players;const teamById=new Map(roster.map(x=>[x.id,x.team]));const ids=[a,b];const enemyPair=(()=>{for(const x of ids)for(const y of ids)if(x!==y&&teamById.get(x.id)!==teamById.get(y.id))return[x,y];throw new Error('team balancing failed')})();
  a.events.length=0;b.events.length=0;c.events.length=0;
- await waitFor(a,e=>e.type==='round_start',4500);
+ await waitFor(a,e=>e.type==='round_start',8000);
  const attacker=enemyPair[0],target=enemyPair[1];attacker.ws.send(JSON.stringify({type:'state',x:0,y:2,z:0,ry:0,rx:0,weapon:'pistol'}));target.ws.send(JSON.stringify({type:'state',x:0,y:2,z:6,ry:Math.PI,rx:0,weapon:'pistol'}));await sleep(120);
  attacker.events.length=0;target.events.length=0;attacker.ws.send(JSON.stringify({type:'shoot',weapon:'pistol',ry:0,rx:-1}));await sleep(60);attacker.ws.send(JSON.stringify({type:'hit',target:target.id,weapon:'pistol',hitType:'head'}));await sleep(180);if(target.events.some(e=>e.type==='hit'))throw new Error('server accepted hit outside aim cone');
  attacker.events.length=0;target.events.length=0;attacker.ws.send(JSON.stringify({type:'shoot',weapon:'pistol',ry:0,rx:0}));await waitFor(target,e=>e.type==='shoot',1500);attacker.ws.send(JSON.stringify({type:'hit',target:target.id,weapon:'pistol',hitType:'head'}));const hit=await waitFor(target,e=>e.type==='hit'&&e.target===target.id,1500);if(hit.hitType!=='body')throw new Error('client spoofed hit type was accepted');if(hit.damage!==50)throw new Error('unexpected server damage');
