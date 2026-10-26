@@ -2,9 +2,10 @@ const G=global.__fpsMatchAuthority;
 if(!G)throw new Error('FPS assist authority bootstrap missing');
 const recent=new Map();
 const WINDOW_MS=10000;
-const original=G.broadcast;
-if(typeof original!=='function')throw new Error('FPS assist authority requires broadcast');
-G.broadcast=function(data,except){
+const originalBroadcast=G.broadcast;
+const originalRoomBroadcast=G.roomBroadcast;
+if(typeof originalBroadcast!=='function'||typeof originalRoomBroadcast!=='function')throw new Error('FPS assist authority requires broadcast functions');
+function track(data){
   if(data&&data.type==='hit'&&data.attacker&&data.target){
     let log=recent.get(String(data.target));
     if(!log){log=new Map();recent.set(String(data.target),log)}
@@ -21,8 +22,9 @@ G.broadcast=function(data,except){
     }
     recent.delete(targetId);
   }
-  return original.call(G,data,except);
-};
+}
+G.broadcast=function(data,except){track(data);return originalBroadcast.call(G,data,except)};
+G.roomBroadcast=function(r,data,except){track(data);return originalRoomBroadcast.call(G,r,data,except)};
 setInterval(()=>{
   const now=Date.now();
   for(const [targetId,log] of recent){
