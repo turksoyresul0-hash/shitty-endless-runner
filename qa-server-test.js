@@ -1,6 +1,6 @@
 const {spawn}=require('child_process');const http=require('http');const WebSocket=require('ws');
 const PORT=18765;
-const child=spawn(process.execPath,['start.js'],{env:{...process.env,PORT:String(PORT)},stdio:['ignore','pipe','pipe']});
+const child=spawn(process.execPath,['start.js'],{env:{...process.env,PORT:String(PORT),FPS_QA_MODE:'1'},stdio:['ignore','pipe','pipe']});
 let logs='';child.stdout.on('data',d=>logs+=d);child.stderr.on('data',d=>logs+=d);
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function health(){return new Promise((resolve,reject)=>{const req=http.get(`http://127.0.0.1:${PORT}/`,res=>{let b='';res.on('data',d=>b+=d);res.on('end',()=>resolve(res.statusCode===200&&JSON.parse(b).ok))});req.on('error',reject);req.setTimeout(800,()=>{req.destroy();reject(new Error('health timeout'))})})}
