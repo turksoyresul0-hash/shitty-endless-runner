@@ -82,6 +82,8 @@ jobs:
       - name: Validate visible player aim geometry
         run: |
           grep -q 'headY=target.y+.34' server.js
+          grep -q 'Math.atan2(-(b.x-a.x),-(b.z-a.z))' server.js
+          grep -q 'x:-Math.sin(p.ry||0)*cp,y:sp,z:-Math.cos(p.ry||0)*cp' server.js
           grep -q 'bodyY=target.y-.5' server.js
           grep -q 'visible head aim was not classified as a headshot' qa-server-test.js
           grep -q "rx:.05" qa-server-test.js
