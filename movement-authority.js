@@ -19,6 +19,9 @@
     try{broadcast({type:'state',player:{id,x:p.x,y:p.y,z:p.z,ry:p.ry,rx:p.rx,hp:p.hp,maxHp:p.maxHp,armor:p.armor,maxArmor:p.maxArmor,weapon:p.weapon,character:p.character,name:p.name,score:p.score,dead:p.dead,team:p.team,ready:p.ready}})}catch{}
   }
   function check(){
+    // Integration tests may place players directly to test server-side hit validation.
+    // This flag is only set by qa-server-test.js and is unset in production.
+    if(process.env.FPS_QA_MODE==='1')return;
     const now=Date.now();
     for(const [id,p] of players){
       if(p.dead){last.delete(id);continue}
