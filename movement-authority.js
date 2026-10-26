@@ -1,7 +1,7 @@
 (()=>{
   const A=global.__fpsMatchAuthority;
   if(!A)return;
-  const {players,stats,broadcast}=A;
+  const {players,stats,roomBroadcast}=A;
   const MAP_BOXES=require('./map-collision');
   const last=new Map();
   const MAX_TICK=.35;
@@ -16,7 +16,7 @@
   function correct(id,p,prev,now){
     p.x=prev.x;p.y=prev.y;p.z=prev.z;p.ry=prev.ry??p.ry;p.rx=prev.rx??p.rx;
     baseline(id,p,now);
-    try{broadcast({type:'state',player:{id,x:p.x,y:p.y,z:p.z,ry:p.ry,rx:p.rx,hp:p.hp,maxHp:p.maxHp,armor:p.armor,maxArmor:p.maxArmor,weapon:p.weapon,character:p.character,name:p.name,score:p.score,dead:p.dead,team:p.team,ready:p.ready}})}catch{}
+    try{const r=p.room&&A.rooms.get(p.room);if(r)roomBroadcast(r,{type:'state',player:{id,x:p.x,y:p.y,z:p.z,ry:p.ry,rx:p.rx,hp:p.hp,maxHp:p.maxHp,armor:p.armor,maxArmor:p.maxArmor,weapon:p.weapon,character:p.character,name:p.name,score:p.score,dead:p.dead,team:p.team,ready:p.ready,room:p.room}},id)}catch{}
   }
   function check(){
     // Integration tests may place players directly to test server-side hit validation.
