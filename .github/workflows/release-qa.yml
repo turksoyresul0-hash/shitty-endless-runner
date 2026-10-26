@@ -79,5 +79,12 @@ jobs:
         run: |
           grep -q 'MAX_JUMP_HEIGHT' movement-authority.js
           grep -q 'maxSpeed' movement-authority.js
+      - name: Validate visible player aim geometry
+        run: |
+          grep -q 'headY=target.y+.34' server.js
+          grep -q 'bodyY=target.y-.5' server.js
+          grep -q 'visible head aim was not classified as a headshot' qa-server-test.js
+          grep -q "rx:.05" qa-server-test.js
+          grep -q 'window.mpSendPlayerHit(targetPlayer.id,current)' index.html
       - name: Multiplayer lifecycle smoke test
         run: node qa-server-test.js
