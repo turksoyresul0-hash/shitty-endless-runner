@@ -7,7 +7,7 @@ function health(){return new Promise((resolve,reject)=>{const req=http.get(`http
 async function waitHealth(){for(let i=0;i<30;i++){try{if(await health())return}catch{}await sleep(100)}throw new Error('server did not become healthy: '+logs)}
 function client(){const ws=new WebSocket(`ws://127.0.0.1:${PORT}`);const events=[];ws.on('message',d=>{try{events.push(JSON.parse(d.toString()))}catch{}});return {ws,events,id:null}}
 function waitOpen(c){return new Promise((resolve,reject)=>{c.ws.once('open',resolve);c.ws.once('error',reject)})}
-async function waitFor(c,pred,ms=3000){const end=Date.now()+ms;while(Date.now()<end){const hit=c.events.find(pred);if(hit)return hit;await sleep(25)}throw new Error('event timeout')}
+async function waitFor(c,pred,ms=3000){const end=Date.now()+ms;while(Date.now()<end){const hit=c.events.find(pred);if(hit)return hit;await sleep(25)}throw new Error('event timeout; client='+(c.id||'unknown')+'; observed='+c.events.slice(-25).map(e=>e.type+(e.room&&e.room.players?'['+e.room.players.length+']':'')).join(','))}
 (async()=>{try{
  await waitHealth();
  const a=client(),b=client(),c=client(),d=client();await Promise.all([waitOpen(a),waitOpen(b),waitOpen(c),waitOpen(d)]);
