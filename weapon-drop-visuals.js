@@ -15,6 +15,6 @@ window.addEventListener('fps:room',e=>{currentRoom=e.detail?.code||null;for(cons
 window.addEventListener('fps:welcome',()=>{for(const id of drops.keys())removeDrop(id)});
 window.addEventListener('fps:match-start',()=>{for(const id of drops.keys())removeDrop(id)});
 const start=()=>{if(loopStarted)return;loopStarted=true;frame()};
-window.addEventListener('fps:local-respawn-applied',()=>{const w=window.__fpsPickedWeapon;if(w){const label=document.getElementById('wep');if(label)label.textContent=w.toUpperCase()}});
+window.addEventListener('fps:local-respawn-applied',e=>{const w=e.detail?.weapon||'pistol';window.__fpsPickedWeapon=w;if(typeof window.__fpsSetActiveWeapon==='function')window.__fpsSetActiveWeapon(w);const label=document.getElementById('wep');if(label)label.textContent=w.toUpperCase()});
 const boot=setInterval(()=>{if(window.__fpsGame?.scene&&window.__fpsPlayer){clearInterval(boot);start()}},250);
 })();
