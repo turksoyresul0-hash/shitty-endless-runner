@@ -38,7 +38,7 @@ jobs:
           node --check weapon-drop-visuals.js
       - name: Syntax-check browser game module
         run: |
-          node -e 'const fs=require("fs");const h=fs.readFileSync("index.html","utf8");const m=h.match(/<script type="module">([\\s\\S]*?)<\\/script>/);if(!m)throw new Error("main module not found");fs.writeFileSync("/tmp/fps-main.mjs",m[1]);'
+          node -e 'const fs=require("fs");const h=fs.readFileSync("index.html","utf8");const m=h.match(/<script type="module">([\s\S]*?)<\/script>/);if(!m)throw new Error("main module not found");fs.writeFileSync("/tmp/fps-main.mjs",m[1]);'
           node --check /tmp/fps-main.mjs
       - name: Validate weapon pickup wiring
         run: |
