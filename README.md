@@ -55,7 +55,7 @@ node qa-server-test.js
 - [Gizlilik Politikası](privacy.html)
 - [Kullanım Koşulları](terms.html)
 
-Oyun içi ilerleme ve bazı ayarlar tarayıcının `localStorage` alanında tutulabilir; tarayıcı verilerini silmek bu bilgileri kaldırabilir. Gerçek para ile satın alma sistemi, platform onayı ve güvenli bir ödeme sağlayıcısı entegrasyonu tamamlanmadan etkinleştirilmemelidir.
+Oyun içi ilerleme, krediler ve bazı ayarlar tarayıcının `localStorage` alanında tutulabilir; tarayıcı verilerini silmek bu bilgileri kaldırabilir. Krediler sanal oyun içi bakiyedir; gerçek para değildir, nakde çevrilemez ve gerçek para ödülü değildir. Gerçek para ile satın alma sistemi, platform onayı ve güvenli bir ödeme sağlayıcısı entegrasyonu tamamlanmadan etkinleştirilmemelidir.
 
 ## Lisans
 
