@@ -93,6 +93,10 @@ jobs:
           grep -Fq 'visible head aim was not classified as a headshot' qa-server-test.js
           grep -Fq 'rx:.05' qa-server-test.js
           grep -Fq 'window.mpSendPlayerHit(targetPlayer.id,current)' index.html
+          grep -Fq 'money:storedCredits()' index.html
+          grep -Fq 'function syncLocalCredits()' index.html
+          grep -Fq "localStorage.setItem('fpsWallet',JSON.stringify(w))" lobby-progression.js
+          grep -Fq "window.addEventListener('fps:money'" lobby-progression.js
           grep -Fq "const online=!!window.__fpsRoomCode;syncPlayMode(online)" index.html
           grep -Fq 'if(!online){enemyUpdate(dt);shotUpdate(dt);pickupUpdate(dt,t);barsUpdate()}' index.html
       - name: Multiplayer lifecycle smoke test

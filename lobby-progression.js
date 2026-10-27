@@ -2,13 +2,13 @@
 'use strict';
 const KEY='fpsProgressV1';
 const defaults={level:1,xp:0,money:0,streak:0,lastDay:'',missions:{kills:0,matches:0,shots:0}};
-function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return {...defaults}}}
+function storedMoney(){try{const w=JSON.parse(localStorage.getItem('fpsWallet')||'{}');if(w&&w.money!==undefined&&w.money!==null&&Number.isFinite(Number(w.money)))return Math.max(0,Number(w.money))}catch{}return Math.max(0,Number(localStorage.getItem('money'))||0)}function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}'),money:storedMoney()}}catch{return {...defaults,money:storedMoney()}}}
 let p=load();
 function save(){localStorage.setItem(KEY,JSON.stringify(p));}
 function dayKey(){return new Date().toISOString().slice(0,10)}
-function awardXp(n){p.xp+=n;while(p.xp>=xpNext()){p.xp-=xpNext();p.level++;p.money+=150;toast(`SEVİYE ${p.level}! +150 kredi`)}save();render()}
+function syncWallet(amount,delta=0){p.money=Math.max(0,Number(amount)||0);let w={};try{w=JSON.parse(localStorage.getItem('fpsWallet')||'{}')||{}}catch{}w.money=p.money;localStorage.setItem('fpsWallet',JSON.stringify(w));localStorage.setItem('money',String(p.money));window.dispatchEvent(new CustomEvent('fps:money',{detail:{money:p.money,delta,source:'progression'}}))}function awardXp(n){const oldMoney=p.money;p.xp+=n;while(p.xp>=xpNext()){p.xp-=xpNext();p.level++;p.money+=150;toast(`SEVİYE ${p.level}! +150 kredi`)}if(p.money!==oldMoney)syncWallet(p.money,p.money-oldMoney);save();render()}
 function xpNext(){return 500+(p.level-1)*125}
-function money(n){p.money+=n;localStorage.setItem('money',String(p.money));save();render()}
+function money(n){syncWallet(p.money+Math.max(0,Number(n)||0),Math.max(0,Number(n)||0));save();render()}
 function toast(t){let e=document.getElementById('lbToast');if(!e){e=document.createElement('div');e.id='lbToast';e.style.cssText='position:absolute;z-index:200;left:50%;top:92px;transform:translateX(-50%);padding:11px 18px;border:1px solid #ffd66e66;border-radius:8px;background:#071018ee;color:#ffd66e;font-weight:900;box-shadow:0 8px 28px #0008;opacity:0;transition:.2s';document.getElementById('lobby')?.appendChild(e)}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1800)}
 function ensureDaily(){const d=dayKey();if(p.lastDay!==d){const prev=new Date();prev.setDate(prev.getDate()-1);const yesterday=prev.toISOString().slice(0,10);p.streak=p.lastDay===yesterday?p.streak+1:1;p.lastDay=d;p.missions.kills=0;p.missions.matches=0;p.missions.shots=0;save()}}
 function render(){const m=document.getElementById('lbMoney');if(m)m.textContent=p.money;const season=document.querySelector('.rightCard b')?.parentElement;if(season&&season.textContent.includes('SEZON'))season.innerHTML=`<b>🏆 SEZON</b><br>Seviye ${p.level} • ${p.xp}/${xpNext()} XP<div style="height:6px;background:#111;border-radius:4px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,p.xp/xpNext()*100)}%;background:#e5a83d"></i></div><small style="opacity:.6">Günlük seri: ${p.streak} 🔥</small>`;const mission=document.querySelector('.rightCard');if(mission&&mission.textContent.includes('GÜNLÜK GÖREV'))mission.innerHTML=`<b>🔥 GÜNLÜK GÖREV</b><br>3 rakip ele geçir <b style="float:right">${Math.min(3,p.missions.kills)}/3</b><div style="height:5px;background:#111;border-radius:4px;margin:7px 0;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,p.missions.kills/3*100)}%;background:#48e37b"></i></div><span style="color:#ffd66e">Ödül: +250 kredi</span>`}
@@ -17,5 +17,6 @@ function hookGame(){window.addEventListener('fps:kill',()=>{p.missions.kills++;a
 function init(){const l=document.getElementById('lobby');if(!l)return;ensureDaily();bind();hookGame();render();const old=document.getElementById('lbCharName');if(old){const hint=document.createElement('div');hint.id='lbProgressHint';hint.style.cssText='position:absolute;top:57px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:1px;color:#fff9;z-index:4;white-space:nowrap';hint.textContent='SEVİYE '+p.level+' • '+p.xp+'/'+xpNext()+' XP';old.parentElement.appendChild(hint)}
 }
 setTimeout(init,250);
+window.addEventListener('fps:money',e=>{const n=Number(e.detail?.money);if(Number.isFinite(n)&&n>=0&&n!==p.money){p.money=n;save();render()}});
 window.fpsProgress={get:()=>({...p}),xp:awardXp,money};
 })();
