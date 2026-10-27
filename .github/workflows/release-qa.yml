@@ -97,6 +97,8 @@ jobs:
           grep -Fq 'function syncLocalCredits()' index.html
           grep -Fq "localStorage.setItem('fpsWallet',JSON.stringify(w))" lobby-progression.js
           grep -Fq "window.addEventListener('fps:money'" lobby-progression.js
+          grep -Fq "type:'room_quick',name,mode:'ranked'" ranked-match-flow.js
+          grep -Fq "window.__fpsRoomState?.mode!=='ranked'" ranked-match-result.js
           grep -Fq "const online=!!window.__fpsRoomCode;syncPlayMode(online)" index.html
           grep -Fq 'if(!online){enemyUpdate(dt);shotUpdate(dt);pickupUpdate(dt,t);barsUpdate()}' index.html
       - name: Multiplayer lifecycle smoke test
