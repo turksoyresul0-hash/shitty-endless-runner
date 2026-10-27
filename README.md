@@ -41,7 +41,7 @@ node qa-server-test.js
 
 ## Yayın öncesi kontrol listesi
 
-- [ ] Release QA GitHub Actions başarılı.
+- [x] Release QA GitHub Actions başarılı (son kontrol: 27 Ekim 2026).
 - [ ] Render sağlık kontrolü ve WebSocket bağlantısı gerçek bir tarayıcıdan doğrulandı.
 - [ ] İki ayrı oyuncuyla oda kurma, takım dağıtımı, hazır olma, maç başlangıcı ve maç sonu test edildi.
 - [ ] Silah düşürme, başka oyuncunun toplaması, cephane/HUD ve respawn sonrası varsayılan silah doğrulandı.
@@ -55,7 +55,7 @@ node qa-server-test.js
 - [Gizlilik Politikası](privacy.html)
 - [Kullanım Koşulları](terms.html)
 
-Oyun içi ilerleme, krediler ve bazı ayarlar tarayıcının `localStorage` alanında tutulabilir; tarayıcı verilerini silmek bu bilgileri kaldırabilir. Krediler sanal oyun içi bakiyedir; gerçek para değildir, nakde çevrilemez ve gerçek para ödülü değildir. Gerçek para ile satın alma sistemi, platform onayı ve güvenli bir ödeme sağlayıcısı entegrasyonu tamamlanmadan etkinleştirilmemelidir.
+Oyun içi ilerleme, krediler ve bazı ayarlar tarayıcının `localStorage` alanında tutulabilir; tarayıcı verilerini silmek bu bilgileri kaldırabilir. Krediler sanal oyun içi bakiyedir; gerçek para değildir, nakde çevrilemez ve gerçek para ödülü değildir. Krediler sanal oyun içi bakiyedir; gerçek para değildir, nakde çevrilemez ve gerçek para ödülü değildir. Gerçek para ile satın alma sistemi, platform onayı ve güvenli bir ödeme sağlayıcısı entegrasyonu tamamlanmadan etkinleştirilmemelidir.
 
 ## Lisans
 
